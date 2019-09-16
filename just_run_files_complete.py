@@ -27,7 +27,7 @@ input_iusv_end = int(input("Enter stop cruise processing number 0-10: "))
 #effort to combine the finding & collocating code
 #intialize grid
 adir = 'C:/Users/gentemann/Google Drive/public/2019_saildrone/'
-for iusv in range(4,5):
+for iusv in range(input_iusv_start,input_iusv_end):
     area_def = load_area('areas.cfg', 'pc_world')
     rlon=np.arange(-180,180,.1)
     rlat=np.arange(90,-90,-.1)
