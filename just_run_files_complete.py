@@ -2,7 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime as dt
-import pandas as pd
+#import pandas as pd
 import xarray as xr
 import scipy
 from glob import glob
@@ -10,7 +10,7 @@ import cartopy.crs as ccrs
 from pyresample.geometry import AreaDefinition
 from pyresample import image, geometry, load_area, save_quicklook, SwathDefinition, area_def2basemap
 from pyresample.kd_tree import resample_nearest
-from math import radians, cos, sin, asin, sqrt
+#from math import radians, cos, sin, asin, sqrt
 from scipy import spatial
 import os.path
 from os import path
