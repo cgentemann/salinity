@@ -41,8 +41,8 @@ for iusv in range(input_iusv_start,input_iusv_end):
         if isat==1:
             fileout = 'F:/data/cruise_data/saildrone/sss_collocations/'+name_usv+'jplv4.2_filesave2.nc'
 
-        if path.exists(fileout):
-            continue
+#        if path.exists(fileout):
+#            continue
 
         #search usv data
         minday,maxday = ds_usv.time[0],ds_usv.time[-1]
@@ -55,6 +55,7 @@ for iusv in range(input_iusv_start,input_iusv_end):
                 continue
             minlon,maxlon,minlat,maxlat = ds_day.lon.min().data,ds_day.lon.max().data,ds_day.lat.min().data,ds_day.lat.max().data
             filelist = get_filelist_l2p(isat, usv_day)
+            print(isat,usv_day.data,maxday.data)
             x,y,z = [],[],[]
             for file in filelist:
                 ds = xr.open_dataset(file)
