@@ -1,118 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
 
-
-#!/usr/bin/env python
-# coding: utf-8
-
-def read_all_usv(adir_usv):
-    # this subroutine reads in all the saildrone data for all cruises and normalizes variable names
-    # input directory with files
-    # output dictionary of datasets
-    
+def read_usv(adir_usv, iusv):
     import xarray as xr
     import numpy as np
-    from glob import glob
-    
-    #list names of variables to keep
-    list_var = ['time','lat','lon','SOG_MEAN','COG_MEAN','HDB_MEAN','ROLL_FILTERED_MEAN','PITCH_FILTERED_MEAN',
-                'UWND_MEAN','VWND_MEAN','WWND_MEAN','GUST_WND_MEAN','TEMP_AIR_MEAN','RH_MEAN','BARO_PRES_MEAN',
-                'PAR_AIR_MEAN','TEMP_CTD_MEAN','SAL_CTD_MEAN','TEMP_RBR_MEAN','SAL_RBR_MEAN',
-                'TEMP_O2_RBR_MEAN']
-    #list names of variables to swap to common names
-    swapvar = {'TEMP_SBE37_MEAN':'TEMP_CTD_MEAN','SAL_SBE37_MEAN':'SAL_CTD_MEAN','SAL_MEAN':'SAL_CTD_MEAN',
-               'TEMP_O2_RBR_MEAN':'TEMP_O2_MEAN','TEMP_CTD_RBR_MEAN':'TEMP_RBR_MEAN'}
 
-    #get list of all filenames in directory
-    files = [x for x in glob(adir_usv)]
-    print('number of file:',len(files))
-    
-    #go through each file, read in, normalize and put in dictionary with datasets
-    for ifile,file in enumerate(files):
-        #print(file)
-        ds = xr.open_dataset(file)
-        ds.close()
-        if any(v=='latitude' for v in ds.dims.keys()):
-            ds = ds.rename({'latitude':'lat','longitude':'lon'})
-        if any(v=='latitude' for v in ds):
-            ds = ds.rename({'latitude':'lat','longitude':'lon'})
-        if any(v=='trajectory' for v in ds.dims.keys()):
-            ds = ds.isel(trajectory=0)
-    #    for v in ds.dims.keys():
-        if any(v=='obs' for v in ds.dims.keys()):
-            ds = ds.swap_dims({'obs':'time'})
-        if any(v=='row' for v in ds.dims.keys()):
-            ds = ds.swap_dims({'row':'time'})
-        #remove any duplicates in time, keep only first value
-        _, index = np.unique(ds['time'], return_index=True)
-        ds=ds.isel(time=index)
-        #renames some common variables to uniform name, drop variables not on list above
-        if any(var=='wind_speed' for var in ds):
-            #print(ds.wind_speed.attrs)
-            #saildrone using meterological wind (blowind from) in early cruises
-            #since noaa is calculating from uwnd and vwnd I went to 2019 arctic cruise 1037 and double checked values
-            ds['UWND_MEAN']=-ds.wind_speed*np.sin(np.deg2rad(ds.wind_dir))
-            ds['VWND_MEAN']=-ds.wind_speed*np.cos(np.deg2rad(ds.wind_dir))
-#            ds.UWND_MEAN.attrs['units']=ds.wind_speed.attrs['units']
-#            ds.VWND_MEAN.attrs['units']=ds.wind_speed.attrs['units']
-            ds.UWND_MEAN.attrs = {'standard_name': 'eastward_wind', 'long_name': 'Eastward wind speed',
-                                  'units': ds.wind_speed.attrs['units'], 'installed_height': '5.2'}
-            ds.VWND_MEAN.attrs = {'standard_name': 'northward_wind', 'long_name': 'Northward wind speed',
-                                  'units': ds.wind_speed.attrs['units'], 'installed_height': '5.2'}
-
-        for var in ds:
-            var2 = var
-            if swapvar.get(var): 
-                ds = ds.rename({var:swapvar.get(var)})
-                var2 = swapvar.get(var)
-            if any(vv==var2 for vv in list_var):
-                ds #just a place holder does nothing
-            else:
-                ds = ds.drop(var2)
-        #check that there is a TEMP_CTD_MEAN, if not & temp_rbr_mean there, change it to temp_ctd_mean
-        if any(var=='TEMP_CTD_MEAN' for var in ds):
-            ds #just a place holder does nothing
-        else:
-            if any(var=='TEMP_RBR_MEAN' for var in ds):
-                ds = ds.rename({'TEMP_RBR_MEAN':'TEMP_CTD_MEAN'})
-        if any(var=='SAL_CTD_MEAN' for var in ds):
-            ds #just a place holder does nothing
-        else:
-            if any(var=='SAL_RBR_MEAN' for var in ds):
-                ds = ds.rename({'SAL_RBR_MEAN':'SAL_CTD_MEAN'})
-
-        # add room to write collocated data information
-        ilen = ds.time.shape[0]
-        ds['deltaT'] = xr.DataArray(np.ones(ilen, dtype='float32')*99999, coords={'time': ds.time}, dims=('time'))
-        ds['smap_SSS'] = xr.DataArray(np.empty(ilen, dtype='float32'), coords={'time': ds.time}, dims=('time'))
-        ds['smap_iqc_flag'] = xr.DataArray(np.empty(ilen, dtype='int32'), coords={'time': ds.time}, dims=('time'))
-        ds['smap_name'] = xr.DataArray(np.empty(ilen, dtype='U125'), coords={'time': ds.time}, dims=('time'))
-        ds['smap_dist'] = xr.DataArray(np.ones(ilen, dtype='float32')*99999, coords={'time': ds.time}, dims=('time'))
-        ds['smap_ydim'] = xr.DataArray(np.empty(ilen, dtype='float32'), coords={'time': ds.time}, dims=('time'))
-        ds['smap_xdim'] = xr.DataArray(np.empty(ilen, dtype='float32'), coords={'time': ds.time}, dims=('time'))
-
-        
-        name = os.path.basename(file)
-        name = name.replace(" ", "_")
-        name = name.replace("/", "_")
-        print(ifile,name)
-        if ifile==0:
-            data_dict = {name:ds}
-        else:
-            data_dict[name]=ds
-   
-    return data_dict
-
-
-
-###################read OLD******************
-def read_usv_old(adir_usv, iusv):
-    import xarray as xr
-    import numpy as np
-    
-    #read in different saildrone cruises and standardize the formats
     filename_usv_list = ['pmel_2015_sd126-ALL-1_min-v1.nc',
                          'pmel_2015_sd128-ALL-1_min-v1.nc',
                          'pmel_2016_sd126-ALL-1_min-v1.nc',
@@ -122,7 +15,7 @@ def read_usv_old(adir_usv, iusv):
                          'arctic_2019_sd1035-NRT-1_min-v1.nc',
                          'arctic_2019_sd1036-NRT-1_min-v1.nc',
                          'arctic_2019_sd1037-NRT-1_min-v1.nc',
-                         'saildrone-gen_5-antarctica_circumnavigation_2019-sd1020-20190119T040000-20190803T043000-1440_minutes-v1.1564857794963.nc'
+                         'saildrone-gen_5-antarctica_circumnavigation_2019-sd1020-20190119T040000-20190803T043000-1440_minutes-v1.1564857794963.nc',
                         'wcoast_2018_sd1024-ALL-1_min-v1.nc',
                         'wcoast_2018_sd1025-ALL-1_min-v1.nc',
                         'wcoast_2018_sd1026-ALL-1_min-v1.nc',
@@ -199,7 +92,7 @@ def read_usv_old(adir_usv, iusv):
                                 'CHLOR_WETLABS_MEAN': 'CHLOR_MEAN'})
     if iusv == 8:  # 1037
         ds_usv = ds_usv.rename({'TEMP_CTD_RBR_MEAN': 'TEMP_CTD_MEAN', 'TEMP_CTD_RBR_STDDEV': 'TEMP_CTD_STDDEV',
-                                'TEMP_O2_RBR_MEAN': 'TEMP_O2_MEAN'})
+                                'TEMP_O2_RBR_MEAN': 'TEMP_O2_MEAN','SAL_RBR_MEAN':'SAL_MEAN'})
     if iusv == 9:  # 1037
         ds_usv = ds_usv.isel(trajectory=0).swap_dims({'obs': 'time'}).rename(
             {'latitude': 'lat', 'longitude': 'lon', 'TEMP_O2_RBR_MEAN': 'TEMP_O2_MEAN'})  # TEMP_CTD_RBR_MEAN':'TEMP_
@@ -222,13 +115,17 @@ def read_usv_old(adir_usv, iusv):
     # add room to write collocated data information
     ilen = ds_usv.time.shape[0]
    
-    ds_usv['delta_time'] = xr.DataArray(np.ones(ilen) * 999999, coords={'time': ds_usv.time}, dims=('time'))
-    ds_usv['sss_name'] = xr.DataArray(np.empty(ilen, dtype=str), coords={'time': ds_usv.time}, dims=('time'))
-    ds_usv['sss_dist'] = xr.DataArray(np.ones(ilen) * 999999, coords={'time': ds_usv.time}, dims=('time'))
-    ds_usv['sss_scan'] = xr.DataArray(np.ones(ilen) * 999999, coords={'time': ds_usv.time}, dims=('time'))
-    ds_usv['sss_cell'] = xr.DataArray(np.ones(ilen) * 999999, coords={'time': ds_usv.time}, dims=('time'))
-    ds_usv['sss_iqc_flag'] = xr.DataArray(np.ones(ilen) * 999999, coords={'time': ds_usv.time}, dims=('time'))
-    ds_usv['sss_sss'] = xr.DataArray(np.ones(ilen) * 999999, coords={'time': ds_usv.time}, dims=('time'))
+    ds_usv['deltaT'] = xr.DataArray(np.ones(ilen) * 999999, coords={'time': ds_usv.time}, dims=('time'))
+    ds_usv['smap_name'] = xr.DataArray(np.empty(ilen, dtype=str), coords={'time': ds_usv.time}, dims=('time'))
+    ds_usv['smap_dist'] = xr.DataArray(np.ones(ilen) * 999999, coords={'time': ds_usv.time}, dims=('time'))
+    ds_usv['smap_scan'] = xr.DataArray(np.ones(ilen) * 999999, coords={'time': ds_usv.time}, dims=('time'))
+    ds_usv['smap_cell'] = xr.DataArray(np.ones(ilen) * 999999, coords={'time': ds_usv.time}, dims=('time'))
+    ds_usv['smap_iqc_flag'] = xr.DataArray(np.ones(ilen) * 999999, coords={'time': ds_usv.time}, dims=('time'))
+    ds_usv['smap_sss'] = xr.DataArray(np.ones(ilen) * 999999, coords={'time': ds_usv.time}, dims=('time'))
+    ds_usv['smap_SSS_40km'] = xr.DataArray(np.ones(ilen) * 999999, coords={'time': ds_usv.time}, dims=('time'))
+    ds_usv['smap_wind_speed'] = xr.DataArray(np.ones(ilen) * 999999, coords={'time': ds_usv.time}, dims=('time'))
+    ds_usv['smap_sss_ref'] = xr.DataArray(np.ones(ilen) * 999999, coords={'time': ds_usv.time}, dims=('time'))
+    ds_usv['smap_wind_dir'] = xr.DataArray(np.ones(ilen) * 999999, coords={'time': ds_usv.time}, dims=('time'))
 
     return ds_usv, name_usv_list[iusv]
 
@@ -270,13 +167,12 @@ def get_orbital_data_l2p(isat,file):
     if isat==0:  #change RSS data to conform with JPL definitions
         ds = ds.isel(look=0)
         ds = ds.rename({'iqc_flag':'quality_flag','cellon':'lon','cellat':'lat','sss_smap':'smap_sss','ydim_grid':'phony_dim_0','xdim_grid':'phony_dim_1'})
-        ds['lon']=np.mod(ds.lon+180,360)-180  
+        ds['lon']=np.mod(ds.lon+180,360)-180
     if isat==1:  #change JPL data to conform with RSS definitions
         ds = ds.rename({'row_time':'time'})
     xlat = ds['lat']
     xlon = ds['lon']
     var_data = ds['smap_sss']
     sat_time = ds['time']
-    sat_qc = ds['ds.quality_flag']
+    sat_qc = ds['quality_flag']
     return xlat,xlon,sat_time,var_data,sat_qc
-
