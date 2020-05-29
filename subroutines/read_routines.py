@@ -21,10 +21,10 @@ def read_all_usv(adir_usv):
     list_var = ['time','lat','lon','SOG_MEAN','COG_MEAN','HDB_MEAN','ROLL_FILTERED_MEAN','PITCH_FILTERED_MEAN',
                 'UWND_MEAN','VWND_MEAN','WWND_MEAN','GUST_WND_MEAN','TEMP_AIR_MEAN','RH_MEAN','BARO_PRES_MEAN',
                 'PAR_AIR_MEAN','TEMP_CTD_MEAN','SAL_CTD_MEAN','TEMP_RBR_MEAN','SAL_RBR_MEAN',
-                'TEMP_O2_RBR_MEAN']
+                'TEMP_O2_RBR_MEAN','CDOM_MEAN','CHLOR_MEAN','CHLOR_WETLABS_MEAN']
     #list names of variables to swap to common names
     swapvar = {'TEMP_SBE37_MEAN':'TEMP_CTD_MEAN','SAL_SBE37_MEAN':'SAL_CTD_MEAN','SAL_MEAN':'SAL_CTD_MEAN',
-               'TEMP_O2_RBR_MEAN':'TEMP_O2_MEAN','TEMP_CTD_RBR_MEAN':'TEMP_RBR_MEAN'}
+               'TEMP_O2_RBR_MEAN':'TEMP_O2_MEAN','TEMP_CTD_RBR_MEAN':'TEMP_RBR_MEAN','CHLOR_RBR_MEAN':'CHLOR_MEAN'}
 
     #get list of all filenames in directory
     files = [x for x in glob(adir_usv)]
@@ -65,6 +65,8 @@ def read_all_usv(adir_usv):
             ds.VWND_MEAN.attrs = {'standard_name': 'northward_wind', 'long_name': 'Northward wind speed',
                                   'units': ds.wind_speed.attrs['units'], 'installed_height': '5.2'}
 
+        # SWAP VARIABLE NAMES
+        # DROP VARIABLES NOT LISTED IN LIST_VAR
         for var in ds:
             var2 = var
             if swapvar.get(var): 
@@ -74,6 +76,7 @@ def read_all_usv(adir_usv):
                 ds #just a place holder does nothing
             else:
                 ds = ds.drop(var2)
+                
         #check that there is a TEMP_CTD_MEAN, if not & temp_rbr_mean there, change it to temp_ctd_mean
         if any(var=='TEMP_CTD_MEAN' for var in ds):
             ds #just a place holder does nothing
