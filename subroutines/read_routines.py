@@ -100,6 +100,7 @@ def read_all_usv(adir_usv):
         name = os.path.basename(file)
         name = name.replace(" ", "_")
         name = name.replace("/", "_")
+        name = name[:-3]
         print(ifile,name)
         if ifile==0:
             data_dict = {name:ds}
