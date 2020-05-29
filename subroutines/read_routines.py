@@ -15,6 +15,7 @@ def read_all_usv(adir_usv):
     import xarray as xr
     import numpy as np
     from glob import glob
+    import os
     
     #list names of variables to keep
     list_var = ['time','lat','lon','SOG_MEAN','COG_MEAN','HDB_MEAN','ROLL_FILTERED_MEAN','PITCH_FILTERED_MEAN',
@@ -34,6 +35,8 @@ def read_all_usv(adir_usv):
         #print(file)
         ds = xr.open_dataset(file)
         ds.close()
+        if any(v=='latitude' for v in ds.coords.keys()):
+            ds = ds.rename({'latitude':'lat','longitude':'lon'})
         if any(v=='latitude' for v in ds.dims.keys()):
             ds = ds.rename({'latitude':'lat','longitude':'lon'})
         if any(v=='latitude' for v in ds):
