@@ -1,4 +1,5 @@
 import sys
+from os import path
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime as dt
@@ -37,7 +38,7 @@ for iname,name in enumerate(data_dict):
     rlon=np.arange(-180,180,.1)
     rlat=np.arange(90,-90,-.1)
 
-    for isat in range(0,1):
+    for isat in range(2):
 
         ds_usv,name_usv=data_dict[name],name
 
@@ -46,8 +47,8 @@ for iname,name in enumerate(data_dict):
         if isat==1:
             fileout = 'F:/data/cruise_data/saildrone/sss_collocations/'+name_usv+'jplv4.2_filesave3.nc'   
 
-#        if path.exists(fileout):
-#            continue
+        if path.exists(fileout):
+            continue
 
         #search usv data
         minday,maxday = ds_usv.time[0],ds_usv.time[-1]
@@ -68,6 +69,8 @@ for iname,name in enumerate(data_dict):
 #            for file in filelist:
                 ds = xr.open_dataset(file)
                 ds.close()  
+                #print('****************')
+                #print(file)
                 if isat==0:  #change RSS data to conform with JPL definitions
                     ds = ds.isel(look=0)
                     ds = ds.rename({'iqc_flag':'quality_flag','cellon':'lon','cellat':'lat','sss_smap':'smap_sss','ydim_grid':'phony_dim_0','xdim_grid':'phony_dim_1'})
@@ -128,8 +131,14 @@ for iname,name in enumerate(data_dict):
                 tree = spatial.KDTree(inputdata)
 #                ilen = ds_usv.time.size
                 #find indices for ds_usv that are within 12 hours of orbit max/min time
-                orbit_time = np.datetime64(ds.attrs['time_coverage_start'])-np.timedelta64(12,'h')
-                orbit_time2 = np.datetime64(ds.attrs['time_coverage_end'])+np.timedelta64(12,'h')
+                if isat==0:
+                    orbit_time = np.datetime64(ds.attrs['time_coverage_start'])-np.timedelta64(12,'h')
+                    orbit_time2 = np.datetime64(ds.attrs['time_coverage_end'])+np.timedelta64(12,'h')  
+                if isat==1:
+                    orbit_time = ds.time[0].data-np.timedelta64(12,'h')
+                    orbit_time2 = ds.time[-1].data+np.timedelta64(12,'h')        
+#                orbit_time = np.datetime64(ds.attrs['time_coverage_start'])-np.timedelta64(12,'h')
+#                orbit_time2 = np.datetime64(ds.attrs['time_coverage_end'])+np.timedelta64(12,'h')
                 #the RSS salinity files have 2000-01-01 where there is missing data in orbit, so use global attributes instead
                 #orbit_time = ds.time.min().data-np.timedelta64(12,'h')   #CHANGED TO +-12 HR
                 #orbit_time2 = ds.time.max().data+np.timedelta64(12,'h')    
