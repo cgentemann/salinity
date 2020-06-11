@@ -18,8 +18,6 @@ from glob import glob
 
 dir_data = 'C:/Users/gentemann/Google Drive/public/2019_saildrone/' #'f:/data/cruise_data/saildrone/saildrone_data/'
 dir_data_pattern = 'C:/Users/gentemann/Google Drive/public/2019_saildrone/*.nc' 
-#dir_data 'f:/data/cruise_data/saildrone/saildrone_data/'
-#dir_data_pattern = 'f:/data/cruise_data/saildrone/saildrone_data/*.nc'
 
 data_dict = read_all_usv(dir_data_pattern)
 data_dict = add_coll_vars(data_dict)
@@ -132,16 +130,11 @@ for iname,name in enumerate(data_dict):
 #                ilen = ds_usv.time.size
                 #find indices for ds_usv that are within 12 hours of orbit max/min time
                 if isat==0:
-                    orbit_time = np.datetime64(ds.attrs['time_coverage_start'])-np.timedelta64(12,'h')
-                    orbit_time2 = np.datetime64(ds.attrs['time_coverage_end'])+np.timedelta64(12,'h')  
+                    orbit_time = np.datetime64(ds.attrs['time_coverage_start'])-np.timedelta64(24,'h') #changed to 24 hr for sss
+                    orbit_time2 = np.datetime64(ds.attrs['time_coverage_end'])+np.timedelta64(24,'h')  
                 if isat==1:
                     orbit_time = ds.time[0].data-np.timedelta64(12,'h')
                     orbit_time2 = ds.time[-1].data+np.timedelta64(12,'h')        
-#                orbit_time = np.datetime64(ds.attrs['time_coverage_start'])-np.timedelta64(12,'h')
-#                orbit_time2 = np.datetime64(ds.attrs['time_coverage_end'])+np.timedelta64(12,'h')
-                #the RSS salinity files have 2000-01-01 where there is missing data in orbit, so use global attributes instead
-                #orbit_time = ds.time.min().data-np.timedelta64(12,'h')   #CHANGED TO +-12 HR
-                #orbit_time2 = ds.time.max().data+np.timedelta64(12,'h')    
                 cond = (ds_usv.time.data>orbit_time) & (ds_usv.time.data<orbit_time2)
                 item = np.argwhere(cond)
                 if item.sum()<1:  #no data within 12 hr of orbit
