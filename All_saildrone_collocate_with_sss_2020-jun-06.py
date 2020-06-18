@@ -11,7 +11,7 @@ from pyresample import image, geometry, load_area, save_quicklook, SwathDefiniti
 from pyresample.kd_tree import resample_nearest
 from scipy import spatial
 sys.path.append('../saildrone/subroutines/')
-from read_routines import read_all_usv, add_coll_vars,get_filelist_l2p,get_orbital_data_l2p
+from read_routines import read_one_usv, add_coll_vars_ds,get_filelist_l2p,get_orbital_data_l2p
 import warnings
 warnings.simplefilter('ignore') # filter some warning messages
 from glob import glob
@@ -19,26 +19,23 @@ from glob import glob
 dir_data = 'C:/Users/gentemann/Google Drive/public/2019_saildrone/' #'f:/data/cruise_data/saildrone/saildrone_data/'
 dir_data_pattern = 'C:/Users/gentemann/Google Drive/public/2019_saildrone/*.nc' 
 
-data_dict = read_all_usv(dir_data_pattern)
-data_dict = add_coll_vars(data_dict)
-
 input_iusv_start = int(input("Enter start cruise processing number 0-44: "))
 input_iusv_end = int(input("Enter stop cruise processing number 0-44: "))
 
 adir = 'C:/Users/gentemann/Google Drive/public/2019_saildrone/'
 #for name in data_dict:
-for iname,name in enumerate(data_dict):
-    if iname<input_iusv_start:
-        continue
-    if iname>input_iusv_end:
-        continue
+for iname in range(input_iusv_start,input_iusv_end): #g,name in enumerate(data_dict):
+
+    ds_usv,name_usv = read_one_usv(dir_data_pattern,iname)
+    ds_usv = add_coll_vars_ds(ds_usv)
+        
     area_def = load_area('areas.cfg', 'pc_world')
     rlon=np.arange(-180,180,.1)
     rlat=np.arange(90,-90,-.1)
 
     for isat in range(2):
 
-        ds_usv,name_usv=data_dict[name],name
+        #ds_usv,name_usv=data_dict[name],name
 
         if isat==0:
             fileout = 'F:/data/cruise_data/saildrone/sss_collocations/'+name_usv+'rssv4_filesave3.nc'
@@ -51,12 +48,14 @@ for iname,name in enumerate(data_dict):
         #search usv data
         minday,maxday = ds_usv.time[0],ds_usv.time[-1]
         usv_day = minday
-        print(iname,name)
+        print(iname,name_usv)
         print(minday.data,maxday.data)
         while usv_day<=maxday:
+            print(usv_day.data,maxday.data)
             ds_day = ds_usv.sel(time=slice(usv_day-np.timedelta64(1,'D'),usv_day+np.timedelta64(1,'D')))
             ilen = ds_day.time.size
             if ilen<1:   #don't run on days without any data
+                usv_day += np.timedelta64(1,'D')
                 continue
             minlon,maxlon,minlat,maxlat = ds_day.lon.min().data,ds_day.lon.max().data,ds_day.lat.min().data,ds_day.lat.max().data
             filelist = get_filelist_l2p(isat, usv_day)
