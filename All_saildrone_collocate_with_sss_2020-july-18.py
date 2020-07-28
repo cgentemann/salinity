@@ -19,16 +19,18 @@ from glob import glob
 dir_data = 'C:/Users/gentemann/Google Drive/public/2019_saildrone/' #'f:/data/cruise_data/saildrone/saildrone_data/'
 dir_data_pattern = 'C:/Users/gentemann/Google Drive/public/2019_saildrone/*.nc' 
 
+#get list of all filenames in directory
+files = [x for x in glob(dir_data_pattern)]
+print('number of file:',len(files))
+for ifile,file in enumerate(files):
+    print(ifile,file)
+
 input_iusv_start = int(input("Enter start cruise processing number 0-44: "))
 input_iusv_end = int(input("Enter stop cruise processing number 0-44: "))
 
 adir = 'C:/Users/gentemann/Google Drive/public/2019_saildrone/'
 
-
-#get list of all filenames in directory
-files = [x for x in glob(dir_data_pattern)]
-print('number of file:',len(files))
-
+   
 #for name in data_dict:
 for iname in range(input_iusv_start,input_iusv_end): #g,name in enumerate(data_dict):
 
@@ -50,8 +52,8 @@ for iname in range(input_iusv_start,input_iusv_end): #g,name in enumerate(data_d
             fileout = 'F:/data/cruise_data/saildrone/sss/sss_collocations/'+name_usv+'jplv4.2_filesave4.nc'   
             ds_usv = add_coll_vars_ds_jpl(ds_usv)
 
-        if path.exists(fileout):
-            continue
+#        if path.exists(fileout):
+#            continue
 
         #search usv data
         minday,maxday = ds_usv.time[0],ds_usv.time[-1]
@@ -166,6 +168,9 @@ for iname in range(input_iusv_start,input_iusv_end): #g,name in enumerate(data_d
                         if isat==0:
                             ds_usv.smap_SSS_40km[iusv_index]=ds.smap_sss_40km[ii,jj]
                             ds_usv.smap_fland[iusv_index]=ds.fland[ii,jj]
+                            ds_usv.rev_number[iusv_index]=int(ds.attrs['orbit_number'])
+                        else:
+                            ds_usv.rev_number[iusv_index]=int(ds.attrs['REVNO'])
                         ds_usv.smap_iqc_flag[iusv_index]=ds.quality_flag[ii,jj]
                         ds_usv.smap_name[iusv_index]=file
                         ds_usv.smap_fice[iusv_index]=ds.fice[ii,jj]
