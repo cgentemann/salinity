@@ -26,30 +26,35 @@ for ifile,file in enumerate(files):
     print(ifile,file)
 
 input_iusv_start = int(input("Enter start cruise processing number 0-44: "))
-input_iusv_end = int(input("Enter stop cruise processing number 0-44: "))
+input_iusv_end = int(input("Enter stop cruise processing number 0-44: "))+1
 
 adir = 'C:/Users/gentemann/Google Drive/public/2019_saildrone/'
 
-   
-#for name in data_dict:
-for iname in range(input_iusv_start,input_iusv_end): #g,name in enumerate(data_dict):
+def get_time_start_end(isat,ds):
+    if isat==0:
+        orbit_time = np.datetime64(ds.attrs['time_coverage_start'])-np.timedelta64(24,'h') #changed to 24 hr for sss
+        orbit_time2 = np.datetime64(ds.attrs['time_coverage_end'])+np.timedelta64(24,'h')  
+    if isat==1:
+        orbit_time = ds.time[0].data-np.timedelta64(12,'h')
+        orbit_time2 = ds.time[-1].data+np.timedelta64(12,'h')        
+    return orbit_time,orbit_time2
 
-    ds_usv,name_usv = read_one_usv(files[iname])
-        
-    area_def = load_area('areas.cfg', 'pc_world')
-    rlon=np.arange(-180,180,.1)
-    rlat=np.arange(90,-90,-.1)
+
+area_def = load_area('areas.cfg', 'pc_world')
+rlon=np.arange(-180,180,.1)
+rlat=np.arange(90,-90,-.1)
+   
+for iname in range(input_iusv_start,input_iusv_end): #g,name in enumerate(data_dict):
 
     for isat in range(2):
 
-
-        #ds_usv,name_usv=data_dict[name],name
+        ds_usv,name_usv = read_one_usv(files[iname])
 
         if isat==0:
-            fileout = 'F:/data/cruise_data/saildrone/sss/sss_collocations/'+name_usv+'rssv4_filesave4.nc'
+            fileout = 'F:/data/cruise_data/saildrone/sss/sss_collocations/'+name_usv+'rssv04.0_filesave4.nc'
             ds_usv = add_coll_vars_ds_rss(ds_usv)
         if isat==1:
-            fileout = 'F:/data/cruise_data/saildrone/sss/sss_collocations/'+name_usv+'jplv4.2_filesave4.nc'   
+            fileout = 'F:/data/cruise_data/saildrone/sss/sss_collocations/'+name_usv+'jplv04.3_filesave4.nc'   
             ds_usv = add_coll_vars_ds_jpl(ds_usv)
 
 #        if path.exists(fileout):
@@ -71,9 +76,6 @@ for iname in range(input_iusv_start,input_iusv_end): #g,name in enumerate(data_d
             filelist = get_filelist_l2p(isat, usv_day)
             x,y,z = [],[],[]
             for ifile,file in enumerate(filelist):
-#                if ifile!=7:
-#                    continue
-#            for file in filelist:
                 ds = xr.open_dataset(file)
                 ds.close()  
                 #print('****************')
@@ -100,21 +102,17 @@ for iname in range(input_iusv_start,input_iusv_end): #g,name in enumerate(data_d
                 #changed to be just the region of the usv cruise to make grid even smaller (hopefully)
                 #when working with global orbital data, work with usv BUT
                 #when working with granules use ds instead of ds_usv so you just do granule region
-                grid_def_lon_min = np.round(ds_day.lon.min().data - 0.5 * 10**(-2), 2)
-                grid_def_lon_max = np.round(ds_day.lon.max().data + 0.5 * 10**(-2), 2)
-                grid_def_lat_min = np.round(ds_day.lat.min().data - 0.5 * 10**(-2), 2)
-                grid_def_lat_max = np.round(ds_day.lat.max().data + 0.5 * 10**(-2), 2)
-                grid_def_lons = np.arange(grid_def_lon_min,grid_def_lon_max+0.1,0.1)
-                grid_def_lats = np.arange(grid_def_lat_max,grid_def_lat_min-0.1,-0.1)
+                grid_def_lon_min, grid_def_lon_max = np.round(ds_day.lon.min().data - 0.5 * 10**(-2), 2), np.round(ds_day.lon.max().data + 0.5 * 10**(-2), 2)
+                grid_def_lat_min, grid_def_lat_max = np.round(ds_day.lat.min().data - 0.5 * 10**(-2), 2), np.round(ds_day.lat.max().data + 0.5 * 10**(-2), 2)
+                grid_def_lons, grid_def_lats = np.arange(grid_def_lon_min,grid_def_lon_max+0.1,0.1), np.arange(grid_def_lat_max,grid_def_lat_min-0.1,-0.1)
                 grid_mesh_lons,grid_mesh_lats = np.meshgrid(grid_def_lons,grid_def_lats)
+
                 # Since we have the lon and lat values for the area, we define a grid instead of an area:
                 # https://pyresample.readthedocs.io/en/latest/geo_def.html#griddefinition
                 grid_def = GridDefinition(lons=grid_mesh_lons,lats=grid_mesh_lats)
 
                 result1 = resample_nearest(swath_def, data, grid_def, radius_of_influence=20000, fill_value=None)
-#                result1 = resample_nearest(swath_def, data, area_def, radius_of_influence=20000, fill_value=None)
                 da = xr.DataArray(result1,name='sss',coords={'lat':grid_def_lats,'lon':grid_def_lons},dims=('lat','lon'))
-#                da = xr.DataArray(result1,name='sss',coords={'lat':rlat,'lon':rlon},dims=('lat','lon'))
 
                 numdata = np.isfinite(da).sum()
                 if numdata<1:
@@ -128,28 +126,19 @@ for iname in range(input_iusv_start,input_iusv_end): #g,name in enumerate(data_d
                 lons = ds_drop.lon.data
                 inputdata = list(zip(lons.ravel(), lats.ravel()))
                 tree = spatial.KDTree(inputdata)
-#                ilen = ds_usv.time.size
-                #find indices for ds_usv that are within 12 hours of orbit max/min time
-                if isat==0:
-                    orbit_time = np.datetime64(ds.attrs['time_coverage_start'])-np.timedelta64(24,'h') #changed to 24 hr for sss
-                    orbit_time2 = np.datetime64(ds.attrs['time_coverage_end'])+np.timedelta64(24,'h')  
-                if isat==1:
-                    orbit_time = ds.time[0].data-np.timedelta64(12,'h')
-                    orbit_time2 = ds.time[-1].data+np.timedelta64(12,'h')        
+                
+                orbit_time, orbit_time2 = get_time_start_end(isat,ds)
+
                 cond = (ds_usv.time.data>orbit_time) & (ds_usv.time.data<orbit_time2)
                 item = np.argwhere(cond)
                 if item.sum()<1:  #no data within 12 hr of orbit
                     continue
                 for iusv_index in range(int(item[0]),int(item[-1])):
-#                    if (ds_usv.time[iusv_index]<orbit_time) or (ds_usv.time[iusv_index]>orbit_time2):
-#                        continue
-                    pts = np.array([ds_usv.lon[iusv_index], ds_usv.lat[iusv_index]])
-            #        pts = np.array([ds_usv.lon[iusv]+360, ds_usv.lat[iusv]])
+                    pts = np.array([ds_usv.lon[iusv_index], ds_usv.lat[iusv_index]]) #pts = np.array([ds_usv.lon[iusv]+360
                     tree.query(pts,k=1)
                     i = tree.query(pts)[1]
-                    rdist = tree.query(pts)[0]
-                    #don't use matchups more than 25 km away
-                    if rdist>.25:
+                    rdist = tree.query(pts)[0]                   
+                    if rdist>.25:    #don't use matchups more than 25 km away
                         continue
                     #use .where to find the original indices of the matched data point
                     #find by matching sss and lat, just randomly chosen variables, you could use any
@@ -168,11 +157,11 @@ for iname in range(input_iusv_start,input_iusv_end): #g,name in enumerate(data_d
                         if isat==0:
                             ds_usv.smap_SSS_40km[iusv_index]=ds.smap_sss_40km[ii,jj]
                             ds_usv.smap_fland[iusv_index]=ds.fland[ii,jj]
-                            ds_usv.rev_number[iusv_index]=int(ds.attrs['orbit_number'])
+                            ds_usv.smap_rev_number[iusv_index]=int(ds.attrs['orbit_number'])
                         else:
-                            ds_usv.rev_number[iusv_index]=int(ds.attrs['REVNO'])
+                            ds_usv.smap_rev_number[iusv_index]=int(ds.attrs['REVNO'])
                         ds_usv.smap_iqc_flag[iusv_index]=ds.quality_flag[ii,jj]
-                        ds_usv.smap_name[iusv_index]=file
+                        ds_usv.smap_name[iusv_index]=str(file)
                         ds_usv.smap_fice[iusv_index]=ds.fice[ii,jj]
                         ds_usv.smap_dist[iusv_index]=rdist
                         ds_usv.smap_ydim[iusv_index]=ii
