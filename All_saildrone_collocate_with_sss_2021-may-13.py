@@ -39,6 +39,7 @@ print('number of file:',len(files))
 for ifile,file in enumerate(files):
     print(ifile,file)    
     
+
 def get_time_start_end(isat,ds):
     if isat==0:
         orbit_time = np.datetime64(ds.attrs['time_coverage_start'])-np.timedelta64(24,'h') #changed to 24 hr for sss
@@ -59,6 +60,8 @@ for iname in range(input_iusv_start,input_iusv_end): #g,name in enumerate(data_d
     rlon=np.arange(-180,180,.1)
     rlat=np.arange(90,-90,-.1)
 
+    for isat in range(2):
+
         ds_usv,name_usv = read_one_usv(files[iname])
 
         if isat==0:
@@ -68,16 +71,16 @@ for iname in range(input_iusv_start,input_iusv_end): #g,name in enumerate(data_d
             fileout = 'F:/data/cruise_data/saildrone/sss/sss_collocations_orbital/'+name_usv+'jplv05.0_orbital.nc'   
             ds_usv = add_coll_vars_ds_jpl(ds_usv)
 
-        #if path.exists(fileout):
-        #    continue
+        if path.exists(fileout):
+            continue
 
         #search usv data
         minday,maxday = ds_usv.time[0],ds_usv.time[-1]
         usv_day = minday
         print(iname,name_usv)
-        print(minday.data,maxday.data)
+        print('day min max:',minday.data,maxday.data)
         while usv_day<=maxday:
-            print(usv_day.data,maxday.data)
+            print('day',usv_day.data,maxday.data)
             ds_day = ds_usv.sel(time=slice(usv_day-np.timedelta64(1,'D'),usv_day+np.timedelta64(1,'D')))
             ilen = ds_day.time.size
             if ilen<1:   #don't run on days without any data
