@@ -60,7 +60,7 @@ for iname in range(input_iusv_start,input_iusv_end): #g,name in enumerate(data_d
     rlon=np.arange(-180,180,.1)
     rlat=np.arange(90,-90,-.1)
 
-    for isat in range(2):
+    for isat in range(1,2):
 
         ds_usv,name_usv = read_one_usv(files[iname])
 
